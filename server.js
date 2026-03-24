@@ -99,7 +99,8 @@ app.put('/produtos/:id', async (req, res) => {
 
 // 6. Deletar produto
 app.delete('/produtos/:id', async (req, res) => {
-    const { id } = req.params;
+    const id = parseInt(req.params.id, 10); // garante que seja número
+    if (isNaN(id)) return res.status(400).json({ error: "ID inválido." });
 
     const { data, error } = await supabase
         .from('produtos')
@@ -107,6 +108,7 @@ app.delete('/produtos/:id', async (req, res) => {
         .eq('id', id);
 
     if (error) return res.status(500).json({ error: error.message });
+
     if (!data.length) return res.status(404).json({ error: "Produto não encontrado." });
 
     res.status(204).send();
