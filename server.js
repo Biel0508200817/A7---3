@@ -21,7 +21,6 @@ app.use((req, res, next) => {
     next();
 });
 
-
 // ================= ROTAS ================= //
 
 // 1. Listar todos os produtos
@@ -30,14 +29,9 @@ app.get('/produtos', async (req, res) => {
         .from('produtos')
         .select('*');
 
-    if (error) {
-        console.error(error);
-        return res.status(500).json({ error: error.message });
-    }
-
+    if (error) return res.status(500).json({ error: error.message });
     res.json(data);
 });
-
 
 // 2. Listar categorias únicas
 app.get('/categorias', async (req, res) => {
@@ -45,14 +39,11 @@ app.get('/categorias', async (req, res) => {
         .from('produtos')
         .select('categoria');
 
-    if (error) {
-        return res.status(500).json({ error: error.message });
-    }
+    if (error) return res.status(500).json({ error: error.message });
 
     const categoriasUnicas = [...new Set(data.map(p => p.categoria))];
     res.json(categoriasUnicas);
 });
-
 
 // 3. Buscar produtos por categoria
 app.get('/produtos/categoria/:nomeCategoria', async (req, res) => {
@@ -63,36 +54,31 @@ app.get('/produtos/categoria/:nomeCategoria', async (req, res) => {
         .select('*')
         .ilike('categoria', nomeCategoria);
 
-    if (error) {
-        return res.status(500).json({ error: error.message });
-    }
+    if (error) return res.status(500).json({ error: error.message });
 
     res.json(data);
 });
-
 
 // 4. Criar produto
 app.post('/produtos', async (req, res) => {
     const { nome, preco, categoria, descricao } = req.body;
 
-    if (!nome || !preco || !categoria) {
+    if (!nome || preco == null || !categoria) {
         return res.status(400).json({
             message: "Nome, preço e categoria são obrigatórios."
         });
     }
 
+    // Inserção sem id — assumindo que a coluna id é auto-increment
     const { data, error } = await supabase
         .from('produtos')
         .insert([{ nome, preco, categoria, descricao }])
         .select();
 
-    if (error) {
-        return res.status(500).json({ error: error.message });
-    }
+    if (error) return res.status(500).json({ error: error.message });
 
     res.status(201).json(data[0]);
 });
-
 
 // 5. Atualizar produto
 app.put('/produtos/:id', async (req, res) => {
@@ -105,30 +91,26 @@ app.put('/produtos/:id', async (req, res) => {
         .eq('id', id)
         .select();
 
-    if (error) {
-        return res.status(500).json({ error: error.message });
-    }
+    if (error) return res.status(500).json({ error: error.message });
+    if (!data.length) return res.status(404).json({ error: "Produto não encontrado." });
 
     res.json(data[0]);
 });
-
 
 // 6. Deletar produto
 app.delete('/produtos/:id', async (req, res) => {
     const { id } = req.params;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('produtos')
         .delete()
         .eq('id', id);
 
-    if (error) {
-        return res.status(500).json({ error: error.message });
-    }
+    if (error) return res.status(500).json({ error: error.message });
+    if (!data.length) return res.status(404).json({ error: "Produto não encontrado." });
 
     res.status(204).send();
 });
-
 
 // ================= ERROS ================= //
 
@@ -143,9 +125,8 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: "Erro interno do servidor." });
 });
 
-
 // ================= SERVIDOR ================= //
-
 const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
 
 module.exports = app;
